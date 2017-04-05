@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en" ng-app="Yuxuan">
+<head>
+    <meta charset="UTF-8">
+    <title>Yuxuan</title>
+    <link rel="stylesheet" type="text/css" href="bootstrap/css/bootstrap.css">
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <script type="text/javascript" src="angular.min.js"></script>
+    <script type="text/javascript" src="angular-route.js"></script>
+    <script type="text/javascript" src="angular-cookies.js"></script>
+    <script type="text/javascript">
+        var app = angular.module('Yuxuan', ['ngRoute', 'ngCookies']);
+
+        app.run(function ($rootScope, $cookies) {
+            if ($cookies.get('token') && $cookies.get('currentUser')) {
+                $rootScope.token = $cookies.get('token');
+                $rootScope.currentUser = $cookies.get('currentUser');
+            }
+        });
+
+        app.config(function ($routeProvider, $locationProvider) {
+            $routeProvider
+                .when('/', {
+                    templateUrl: 'home.html',
+                    controller: 'HomeController',
+                }).when('/signup', {
+                templateUrl: 'signup.html',
+                controller: 'SignupController',
+            })
+        });
+
+        app.controller('HomeController', function ($rootScope, $scope, $http, $cookies) {
+            $scope.submitNewMeow = function () {
+                //console.log($scope.newMeow);
+                $http.post('/meows', {newMeow: $scope.newMeow},
+                    {headers: {
+                    'authorization': $rootScope.token
+                    }}).then(function (){
+                    getMeows();
+                    $scope.newMeow = '';
+                    //alert('success!');
+                });
+            };
+
+            $scope.removeMeow = function (meow) {
+                $http.put('/meows/remove',
+                    {meow: meow},
+                    {headers:{
+                    'authorization': $rootScope.token
+                    }}).then(function() {
+                    getMeows();
+                    //alert('success!');
+                });
+            };
+
+            $scope.signin = function () {
+                $http.put('/users/signin', {username: $scope.username, password: $scope.password})
+                    .then(function (res) {
+                        $cookies.put('token', res.data.token);
+                        $cookies.put('currentUser', $scope.username);
+                        $rootScope.token = res.data.token;
+                        $rootScope.currentUser = $scope.username;
+                        alert('success signed in!');
+                    }, function (err) {
+                        alert('bad login credentials');
+                    });
+            };
+
+            $scope.logout = function () {
+                $cookies.remove('token');
+                $cookies.remove('currentUser');
+                $rootScope.token = null;
+                $rootScope.currentUser = null;
+            };
+
+            function getMeows() {
+                $http.get('/meows').then(function (response) {
+                    $scope.meows = response.data;
+                });
+            }
+
+            getMeows();
+        });
+
+        app.controller('SignupController', function ($scope, $http) {
+            $scope.submitSignup = function () {
+                var newUser = {
+                    username: $scope.username,
+                    password: $scope.password
+                };
+                $http.post('/users', newUser).then(function () {
+                    alert('success!');
+                });
+            }
+        });
+
+    </script>
+</head>
+<body>
+<h1 class="page-title"><a href="#/">Yuxuan</a></h1>
+<div ng-view></div>
+</body>
+</html>
+
+<!--mac 下 webstorm 格式化代码的快捷键 Option+Command+l-->
+<!--ng-controller="YZ"-->
+<!--Good reference:https://www.youtube.com/watch?v=tcK-7MFWEiY&list=PLZrs7Z81U28WYp_uuTe9bcCd0ohBwKrwy&index=12-->
